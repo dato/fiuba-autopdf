@@ -12,10 +12,13 @@ RUN addgroup --gid 17541 fiuba7541             && \
 # Dependencias.
 RUN apt-get update && env DEBIAN_FRONTEND=noninteractive \
     apt-get install --assume-yes --no-install-recommends \
-        git     \
-        make    \
-        pandoc  \
-        lmodern \
+        curl     \
+        gawk     \
+        git      \
+        make     \
+        pandoc   \
+        lmodern  \
+        parallel \
         openssh-client       \
         texlive-xetex        \
         texlive-lang-spanish \
