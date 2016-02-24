@@ -106,7 +106,8 @@ while true; do
     touch "$STAMPFILE"
   fi
 
-  git pull
+  git fetch -q --prune
+  git reset -q --hard "@{upstream}"
 
   update_one 7540 "#algoritmos1"
   update_one 7541 "#algoritmos2"
