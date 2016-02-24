@@ -26,6 +26,9 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive \
         texlive-fonts-recommended
 
 # TODO(dato): compilar skicka en la imagen, o usar paquetes.
-COPY ["bin/skicka", "/usr/local/bin/"]
+COPY ["ssh", "/fiuba7541/.ssh"]
+COPY ["bin/mk_autopdf", "bin/skicka", "/usr/local/bin/"]
 
-ENTRYPOINT ["pandoc"]
+USER "fiuba7541"
+
+ENTRYPOINT ["mk_autopdf"]

@@ -1,0 +1,121 @@
+#! /bin/bash
+
+set -u
+
+STAMPFILE=".skicka.autopdf_stamp"
+DRIVE_ROOT="Auto PDF"
+BITBUCKET_URL=$(git config --get remote.origin.url |
+                sed -r 's#.*(bitbucket.org):(.+)#https://\1/\2/commits#')
+
+OUT=`mktemp`
+ERR=`mktemp`
+trap "rm -f $OUT $ERR" EXIT
+
+update_one() {
+  : >"$OUT"
+  : >"$ERR"
+
+  make -k -C "$1" --no-print-directory || prepare_errors "$1" >>"$ERR"
+
+  git ls-files --full-name --ignored --other --exclude='*.pdf' "$1"   |
+      parallel --no-notice -X -j 1 find {} -newer "$STAMPFILE" | sort |
+
+  while read local; do
+    local new=0
+    local path="$DRIVE_ROOT/$local"
+    local dir=$(dirname "$path")
+    local file=$(basename "$path")
+
+    skicka ls "$path" >/dev/null 2>&1 || new=1
+
+    if [[ $new -ne 0 ]]; then
+      skicka mkdir -p "$dir"
+    fi
+
+    skicka upload "$local" "$path"
+
+    local url=$(skicka -debug ls -ll "$path" 2>/dev/null |
+        sed -rn 's#.*id:\s*(\S+).*#https://drive.google.com/file/d/\1/view#p')
+
+    cat >>"$OUT" <<-ATTACHMENT
+        , {
+            "title": "Nuevo PDF: $file",
+            "title_link": "$url",
+            "fallback": "Nuevo PDF: $file",
+            "fields": [
+                $(get_details "${local%.pdf}.md")
+            ],
+            "color": "good"
+          }
+	ATTACHMENT
+  done
+
+  if [[ ( -s $OUT || -s $ERR ) && -n ${AUTOPDF_WEBHOOK_URL-} ]]; then
+    curl -d @- "$AUTOPDF_WEBHOOK_URL" <<-JSON
+        {
+          "channel": "$2",
+          "username": "autopdf",
+          "attachments": [ {}
+              $(cat "$OUT" "$ERR")
+          ]
+        }
+	JSON
+  fi
+}
+
+skicka() {
+    env HOME="$(pwd)" skicka "$@"
+}
+
+get_details() {
+  git log -1 -s --format='
+    {"title": "Autor", "short": true, "value": "%aN"},
+    {"title": "Revisión", "short": true, "value": "<'"$BITBUCKET_URL"'/%H|%h>"},
+    {"title": "Log", "short": false, "value": "%s"}' "$1"
+}
+
+prepare_errors() {
+  make -k -C "$1" 2>&1 | gawk '
+      /^pandoc / {
+        inside = 1;
+        match($0, / ([^ ]+.md)/, xs);
+        s = "Error en " xs[1];
+        printf(", { \"title\": \"%s\",         \
+                    \"fallback\": \"%s\",      \
+                    \"color\": \"danger\",     \
+                    \"mrkdwn_in\": [\"text\"], \
+                    \"text\": \"```",          \
+               s, s);
+        next;
+      }
+
+      inside {
+        printf("%s\\n", $0);
+      }
+
+      /^pandoc:/ {
+        inside = 0;
+        print "```\"}"
+      }'
+}
+
+while true; do
+  echo "Waking up at $(date +'%b %d, %H:%M:%S %Z')"
+
+  if [ ! -e "$STAMPFILE" ]; then
+    touch "$STAMPFILE"
+  fi
+
+  git pull
+
+  update_one 7540 "#algoritmos1"
+  update_one 7541 "#algoritmos2"
+
+  touch "$STAMPFILE"
+
+  echo "Done."
+
+  sleep_period=300
+  echo "Next cycle at $(date +'%b %d, %H:%M:%S %Z' -d "$sleep_period seconds")"
+  sleep $sleep_period
+done
