@@ -1,1 +1,7 @@
 StrictHostKeyChecking yes
+
+ControlMaster auto
+ControlPersist 1h
+ControlPath /dev/shm/%u_%r@%h:%p
+
+# vi:ft=sshconfig
