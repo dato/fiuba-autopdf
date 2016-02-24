@@ -99,8 +99,8 @@ prepare_errors() {
       }'
 }
 
-while true; do
-  echo "Waking up at $(date +'%b %d, %H:%M:%S %Z')"
+main() {
+  echo "Script starting at $(date +'%b %d, %H:%M:%S %Z')"
 
   if [ ! -e "$STAMPFILE" ]; then
     touch "$STAMPFILE"
@@ -113,10 +113,7 @@ while true; do
   update_one 7541 "#algoritmos2"
 
   touch "$STAMPFILE"
+  echo "Script finished at $(date +'%b %d, %H:%M:%S %Z')"
+}
 
-  echo "Done."
-
-  sleep_period=300
-  echo "Next cycle at $(date +'%b %d, %H:%M:%S %Z' -d "$sleep_period seconds")"
-  sleep $sleep_period
-done
+main

@@ -1,4 +1,4 @@
-# -*- docker-image-name: "fiuba/pandoc" -*-
+# -*- docker-image-name: "fiuba/autopdf" -*-
 
 # Queremos Pandoc 1.15 o posterior.
 FROM debian:stretch
@@ -19,6 +19,7 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive \
         pandoc   \
         lmodern  \
         parallel \
+        python-gevent        \
         openssh-client       \
         ca-certificates      \
         texlive-xetex        \
@@ -27,8 +28,9 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive \
 
 # TODO(dato): compilar skicka en la imagen, o usar paquetes.
 COPY ["ssh", "/fiuba7541/.ssh"]
-COPY ["bin/mk_autopdf", "bin/skicka", "/usr/local/bin/"]
+COPY ["bin/autopdf", "bin/mk_autopdf", "bin/skicka", "/usr/local/bin/"]
 
+EXPOSE 8080
 USER "fiuba7541"
 
-ENTRYPOINT ["mk_autopdf"]
+ENTRYPOINT ["autopdf"]

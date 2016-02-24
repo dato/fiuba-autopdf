@@ -1,0 +1,42 @@
+#!/usr/bin/env python
+# coding: utf-8
+
+"""Listener para el webhook de Bitbucket."""
+
+from __future__ import print_function
+
+import gevent
+
+from gevent import event
+from gevent import pywsgi
+from gevent import subprocess
+
+
+remake = event.Event()
+
+
+def make():
+  """Llama a nuestro script cada vez que hay un evento.
+  """
+  while remake.wait():
+    remake.clear()
+    subprocess.call(["mk_autopdf"])
+
+
+def app(env, start_response):
+  """Acepta POST y devuelve OK, activando ‘remake’.
+  """
+  if env["REQUEST_METHOD"] == "POST":
+    code = "200 OK"
+    remake.set()
+  else:
+    code = "405 Method not allowed"
+
+  start_response(code, [("Content-Type", "text/html")])
+  return []
+
+
+if __name__ == "__main__":
+  gevent.spawn(make)
+  print("Starting server on port 8080")
+  pywsgi.WSGIServer(("", 8080), app).serve_forever()
