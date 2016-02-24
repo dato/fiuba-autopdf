@@ -20,8 +20,12 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive \
         lmodern  \
         parallel \
         openssh-client       \
+        ca-certificates      \
         texlive-xetex        \
         texlive-lang-spanish \
         texlive-fonts-recommended
+
+# TODO(dato): compilar skicka en la imagen, o usar paquetes.
+COPY ["bin/skicka", "/usr/local/bin/"]
 
 ENTRYPOINT ["pandoc"]
