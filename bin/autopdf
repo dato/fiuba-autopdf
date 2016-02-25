@@ -4,32 +4,36 @@
 """Listener para el webhook de Bitbucket."""
 
 from __future__ import print_function
+from __future__ import unicode_literals
 
 import flask
 import gevent
 
-from gevent import event
+from gevent import queue
 from gevent import pywsgi
 from gevent import subprocess
 
 
 app = flask.Flask(__name__)
-remake = event.Event()
+queue = queue.Queue()
 
 
 def make():
-  """Llama a nuestro script cada vez que hay un evento.
+  """Llama a nuestro script cada vez que hay un elemento en la cola.
   """
-  while remake.wait():
-    remake.clear()
-    subprocess.call(["mk_autopdf"])
+  while True:
+    subprocess.call(["mk_autopdf", queue.get()])
 
 
 @app.route("/", methods=["POST"])
 def receive_webhook():
-  """Acepta el payload del webhook, y activa ‘remake’.
+  """Acepta el payload del webhook, y añade el repositorio a la cola.
   """
-  remake.set()
+  data = flask.request.get_json() or {}
+
+  if "push" in data:
+    queue.put(data["repository"]["full_name"])
+
   return flask.make_response()
 
 

@@ -2,10 +2,12 @@
 
 set -u
 
-STAMPFILE=".skicka.autopdf_stamp"
-DRIVE_ROOT="Auto PDF"
+cd "$AUTOPDF_HOME/${1-.}" || exit 1
+
+STAMPFILE=".autopdf_stamp"
+TARGETFILE=".autopdf_targets"
 BITBUCKET_URL=$(git config --get remote.origin.url |
-                sed -r 's#.*(bitbucket.org):(.+)#https://\1/\2/commits#')
+                sed -r 's#.*(bitbucket.org).(.+)#https://\1/\2/commits#')
 
 OUT=`mktemp`
 ERR=`mktemp`
@@ -17,12 +19,12 @@ update_one() {
 
   make -k -C "$1" --no-print-directory || prepare_errors "$1" >>"$ERR"
 
-  git ls-files --full-name --ignored --other --exclude='*.pdf' "$1"   |
-      parallel --no-notice -X -j 1 find {} -newer "$STAMPFILE" | sort |
+  git ls-files --full-name --ignored --other --exclude='*.pdf' -- "$1" |
+      parallel --no-notice -X -j 1 find {} -newer "$STAMPFILE" | sort  |
 
   while read local; do
     local new=0
-    local path="$DRIVE_ROOT/$local"
+    local path="$AUTOPDF_DRIVE_DIR/$local"
     local dir=$(dirname "$path")
     local file=$(basename "$path")
 
@@ -43,7 +45,7 @@ update_one() {
             "title_link": "$url",
             "fallback": "Nuevo PDF: $file",
             "fields": [
-                $(get_details "${local%.pdf}.md")
+                $(get_details "${local}")
             ],
             "color": "good"
           }
@@ -64,14 +66,25 @@ update_one() {
 }
 
 skicka() {
-    env HOME="$(pwd)" skicka "$@"
+    env HOME="$AUTOPDF_HOME" skicka "$@"
 }
 
 get_details() {
+  # Primero comprobamos si hay un .md correspondiente
+  if git ls-files --error-unmatch -- "${1%.pdf}.md" >/dev/null 2>&1; then
+    local path="${1%.pdf}.md"
+  else
+    # Si no, usamos eliminamos el nombre del archivo para hacer log del
+    # directorio. El :// es para el caso en el que el archivo está en el
+    # raíz.
+    local path="://$1"
+    path="${path%/*}"
+  fi
+
   git log -1 -s --format='
     {"title": "Autor", "short": true, "value": "%aN"},
     {"title": "Revisión", "short": true, "value": "<'"$BITBUCKET_URL"'/%H|%h>"},
-    {"title": "Log", "short": false, "value": "%s"}' "$1"
+    {"title": "Log", "short": false, "value": "%s"}' -- "${path}"
 }
 
 prepare_errors() {
@@ -109,8 +122,13 @@ main() {
   git fetch -q --prune
   git reset -q --hard "@{upstream}"
 
-  update_one 7540 "#algoritmos1"
-  update_one 7541 "#algoritmos2"
+  if [[ ! -r $TARGETFILE ]]; then
+      echo >&2 "'`pwd`/$TARGETFILE' does not exist"
+  else
+    while read subdir channel; do
+      update_one "$subdir" "$channel"
+    done <"$TARGETFILE"
+  fi
 
   touch "$STAMPFILE"
   echo "Script finished at $(date +'%b %d, %H:%M:%S %Z')"
