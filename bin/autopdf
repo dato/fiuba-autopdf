@@ -5,6 +5,7 @@
 
 from __future__ import print_function
 
+import flask
 import gevent
 
 from gevent import event
@@ -12,6 +13,7 @@ from gevent import pywsgi
 from gevent import subprocess
 
 
+app = flask.Flask(__name__)
 remake = event.Event()
 
 
@@ -23,17 +25,12 @@ def make():
     subprocess.call(["mk_autopdf"])
 
 
-def app(env, start_response):
-  """Acepta POST y devuelve OK, activando ‘remake’.
+@app.route("/", methods=["POST"])
+def receive_webhook():
+  """Acepta el payload del webhook, y activa ‘remake’.
   """
-  if env["REQUEST_METHOD"] == "POST":
-    code = "200 OK"
-    remake.set()
-  else:
-    code = "405 Method not allowed"
-
-  start_response(code, [("Content-Type", "text/html")])
-  return []
+  remake.set()
+  return flask.make_response()
 
 
 if __name__ == "__main__":

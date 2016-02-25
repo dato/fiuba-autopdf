@@ -19,6 +19,7 @@ RUN apt-get update && env DEBIAN_FRONTEND=noninteractive \
         pandoc   \
         lmodern  \
         parallel \
+        python-flask         \
         python-gevent        \
         openssh-client       \
         ca-certificates      \
