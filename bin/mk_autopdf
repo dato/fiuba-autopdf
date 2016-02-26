@@ -53,7 +53,7 @@ update_one() {
   done
 
   if [[ ( -s $OUT || -s $ERR ) && -n ${AUTOPDF_WEBHOOK_URL-} ]]; then
-    curl -d @- "$AUTOPDF_WEBHOOK_URL" <<-JSON
+    curl -sSLd @- "$AUTOPDF_WEBHOOK_URL" <<-JSON
         {
           "channel": "$2",
           "username": "autopdf",
