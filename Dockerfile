@@ -18,6 +18,7 @@ RUN apt-get update && \
         make     \
         pandoc   \
         lmodern  \
+        procps   \
         parallel \
         python-flask    \
         python-gevent   \
