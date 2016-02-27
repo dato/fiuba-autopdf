@@ -20,9 +20,10 @@ update_one() {
   make -k -C "$1" --no-print-directory || prepare_errors "$1" >>"$ERR"
 
   git ls-files --full-name --ignored --other --exclude='*.pdf' -- "$1" |
-      parallel --no-notice -X -j 1 find {} -newer "$STAMPFILE" | sort  |
-
   while read local; do
+    if [[ $local -ot $STAMPFILE ]]; then
+      continue
+    fi
     local new=0
     local path="$AUTOPDF_DRIVE_DIR/$local"
     local dir=$(dirname "$path")
