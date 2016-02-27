@@ -24,16 +24,17 @@ update_one() {
     if [[ $local -ot $STAMPFILE ]]; then
       continue
     fi
-    local new=0
+    local new=""
     local path="$AUTOPDF_DRIVE_DIR/$local"
     local dir=$(dirname "$path")
     local file=$(basename "$path")
 
-    skicka ls "$path" >/dev/null 2>&1 || new=1
+    skicka ls "$path" >/dev/null 2>&1 || new="Nuevo PDF"
 
-    if [[ $new -ne 0 ]]; then
+    if [[ -n $new ]]; then
       skicka mkdir -p "$dir"
     fi
+    local kind="${new:-PDF actualizado}"
 
     skicka upload "$local" "$path"
 
@@ -42,9 +43,9 @@ update_one() {
 
     cat >>"$OUT" <<-ATTACHMENT
         , {
-            "title": "Nuevo PDF: $file",
+            "title": "$kind: $file",
             "title_link": "$url",
-            "fallback": "Nuevo PDF: $file",
+            "fallback": "$kind: $file",
             "fields": [
                 $(get_details "${local}")
             ],
