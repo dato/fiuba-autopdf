@@ -10,7 +10,7 @@ RUN addgroup --gid 17541 fiuba7541             && \
              --disabled-password fiuba7541
 
 # Dependencias.
-RUN apt-get update && \
+RUN apt-get update && apt-get upgrade -y               && \
     env DEBIAN_FRONTEND=noninteractive apt-get install -y \
         curl     \
         gawk     \
