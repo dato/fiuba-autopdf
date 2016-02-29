@@ -17,7 +17,7 @@ update_one() {
   : >"$OUT"
   : >"$ERR"
 
-  make -k -C "$1" --no-print-directory || prepare_errors "$1" >>"$ERR"
+  make -k -C "$1" --no-print-directory || prepare_errors "$1" >>"$OUT"
 
   git ls-files --full-name --ignored --other --exclude='*.pdf' -- "$1" |
   while read local; do
@@ -88,28 +88,20 @@ Log	%s	false" -- "$path" |
 }
 
 prepare_errors() {
-  make -k -C "$1" 2>&1 | gawk '
-      /^pandoc / {
-        inside = 1;
-        match($0, / ([^ ]+.md)/, xs);
-        s = "Error en " xs[1];
-        printf(", { \"title\": \"%s\",         \
-                    \"fallback\": \"%s\",      \
-                    \"color\": \"danger\",     \
-                    \"mrkdwn_in\": [\"text\"], \
-                    \"text\": \"```",          \
-               s, s);
-        next;
-      }
+  make -C "$1" >"$ERR" 2>&1
 
-      inside {
-        printf("%s\\n", $0);
-      }
+  local error=$(sed '/^ *$/d' <"$ERR" | tail -n 30 |
+                jq -R -s '"```" + . + "```"')
 
-      /^pandoc:/ {
-        inside = 0;
-        print "```\"}"
-      }'
+  local where=$(sed -rn 's/^make: \*\*\* \[([^]]+).*/Error en \1/p' <"$ERR")
+
+  jq -n --arg title "${where:-Error}" ' {
+      "title": $title,
+      "fallback": $title,
+      "color": "danger",
+      "mrkdwn_in": ["text"],
+      "text": '"$error"'
+    }'
 }
 
 main() {
