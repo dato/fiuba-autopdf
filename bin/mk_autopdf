@@ -41,29 +41,25 @@ update_one() {
     local url=$(skicka -debug ls -ll "$path" 2>/dev/null |
         sed -rn 's#.*id:\s*(\S+).*#https://drive.google.com/file/d/\1/view#p')
 
-    cat >>"$OUT" <<-ATTACHMENT
-        , {
-            "title": "$kind: $file",
-            "title_link": "$url",
-            "fallback": "$kind: $file",
-            "fields": [
-                $(get_details "${local}")
-            ],
+    get_details "$local" | jq -n      \
+        --arg url "$url"              \
+        --arg title "$kind: $file"    \
+        --slurpfile fields /dev/stdin ' {
+            "title": $title,
+            "fallback": $title,
+            "fields": $fields,
+            "title_link": $url,
             "color": "good"
-          }
-	ATTACHMENT
+        }' >>"$OUT"
   done
 
-  if [[ ( -s $OUT || -s $ERR ) && -n ${AUTOPDF_WEBHOOK_URL-} ]]; then
-    curl -sSLd @- "$AUTOPDF_WEBHOOK_URL" <<-JSON
-        {
-          "channel": "$2",
-          "username": "${AUTOPDF_BOT_NAME:-autopdf}",
-          "attachments": [ {}
-              $(cat "$OUT" "$ERR")
-          ]
-        }
-	JSON
+  if [[ -s $OUT && -n ${AUTOPDF_WEBHOOK_URL-} ]]; then
+    jq --arg user "${AUTOPDF_BOT_NAME:-autopdf}"    \
+       --arg chan "$2" --slurpfile attach "$OUT" -n ' {
+          "channel": $chan,
+          "username": $user,
+          "attachments": $attach
+    }' | curl -sSLd @- "$AUTOPDF_WEBHOOK_URL"
   fi
 }
 
@@ -83,10 +79,12 @@ get_details() {
     path="${path%/*}"
   fi
 
-  git log -1 -s --format='
-    {"title": "Autor", "short": true, "value": "%aN"},
-    {"title": "Revisión", "short": true, "value": "<'"$BITBUCKET_URL"'/%H|%h>"},
-    {"title": "Log", "short": false, "value": "%s"}' -- "${path}"
+  git log -1 -s --format="\
+Autor	%aN	true
+Revisión	<$BITBUCKET_URL/%H|%h>	true
+Log	%s	false" -- "$path" |
+    jq -R '[["title", "value", "short"], split("\t")] |
+              transpose | map( {(.[0]): .[1]} ) | add'
 }
 
 prepare_errors() {

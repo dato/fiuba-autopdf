@@ -1,7 +1,7 @@
 # -*- docker-image-name: "fiuba/autopdf" -*-
 
-# Queremos Pandoc 1.15 o posterior.
-FROM debian:stretch
+# Queremos Pandoc 1.15 o posterior, y jq 1.5 o posterior.
+FROM ubuntu:16.04
 
 RUN addgroup --gid 17541 fiuba7541             && \
      adduser --system --uid 17541 --gid 17541     \
@@ -12,6 +12,7 @@ RUN addgroup --gid 17541 fiuba7541             && \
 # Dependencias.
 RUN apt-get update && apt-get upgrade -y               && \
     env DEBIAN_FRONTEND=noninteractive apt-get install -y \
+        jq       \
         curl     \
         gawk     \
         git      \
