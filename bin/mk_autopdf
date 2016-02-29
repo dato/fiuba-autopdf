@@ -58,7 +58,7 @@ update_one() {
     curl -sSLd @- "$AUTOPDF_WEBHOOK_URL" <<-JSON
         {
           "channel": "$2",
-          "username": "autopdf",
+          "username": "${AUTOPDF_BOT_NAME:-autopdf}",
           "attachments": [ {}
               $(cat "$OUT" "$ERR")
           ]
