@@ -6,6 +6,8 @@
 from __future__ import print_function
 from __future__ import unicode_literals
 
+import httplib
+
 import flask
 import gevent
 
@@ -34,7 +36,7 @@ def receive_webhook():
   if "push" in data:
     queue.put(data["repository"]["full_name"])
 
-  return flask.make_response()
+  return flask.make_response(), httplib.NO_CONTENT
 
 
 if __name__ == "__main__":
