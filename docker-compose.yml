@@ -1,0 +1,48 @@
+version: "2"
+
+services:
+
+  autopdf:
+    image: fiuba/autopdf
+
+    user: fiuba7541
+    hostname: autopdf
+    container_name: autopdf.run
+
+    restart: always
+    read_only: true
+    network_mode: default  # docker/compose#2999
+
+    cap_drop:
+      - ALL
+
+    ports:
+      - "7560:8080"
+
+    volumes:
+      - "/srv/fiuba/75.41/autopdf/repos:/autopdf"
+      - "/srv/fiuba/75.41/autopdf/ssh_keys/autopdf_rsa:/fiuba7541/.ssh/id_rsa:ro"
+
+    working_dir: /autopdf
+
+    # Does not work yet: https://github.com/docker/compose/issues/2778.
+    tmpfs:
+      - "/tmp:size=10M"
+      - "/fiuba7541/.texmf-var:uid=17541,gid=17541,mode=755"
+
+    environment:
+      AUTOPDF_HOME: /autopdf
+      AUTOPDF_DRIVE_DIR: "Auto PDF"
+
+    env_file: .env  # Set AUTOPDF_WEBHOOK_URL here
+
+  test:
+    extends: autopdf
+
+    environment:
+      AUTOPDF_BOT_NAME: autopdf_test
+      AUTOPDF_DRIVE_DIR: "Auto PDF/Test uploads"
+      AUTOPDF_WEBHOOK_URL: ""
+
+    volumes:
+      - "/srv/fiuba/75.41/autopdf/bin:/usr/local/bin:ro"
