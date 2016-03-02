@@ -79,7 +79,7 @@ get_details() {
     path="${path%/*}"
   fi
 
-  git log -1 -s --format="\
+  git log -1 --first-parent -s --format="\
 Autor	%aN	true
 Revisión	<$BITBUCKET_URL/%H|%h>	true
 Log	%s	false" -- "$path" |
