@@ -31,6 +31,7 @@ services:
       - "/fiuba7541/.texmf-var:uid=17541,gid=17541,mode=755"
 
     environment:
+      TZ: "America/Buenos_Aires"
       AUTOPDF_HOME: /autopdf
       AUTOPDF_DRIVE_DIR: "Auto PDF"
 
